@@ -20,6 +20,7 @@ $import git-repo-to-md git-repo-to-url git-url-to-md
 alias gr2md=git-repo-to-md
 
 git-branch-or-tag () { if [ "$1" ]; then git tag | grep $1 || fail no $1 tag; else git branch --show-current; fi; }
+$import git-branch-or-tag fail
 git-file-to-url() { xargs -ri echo https://$(git-site)/$(git-repo)/blob/$(git-branch-or-tag "$@")/{}; }
 $import git-file-to-url git-site git-repo git-branch-or-tag
 
