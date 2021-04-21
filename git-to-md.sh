@@ -40,6 +40,7 @@ $import git-repo-and-commit-to-js git-repo-to-js git-commit-to-js
 git_commit_to_md='"[\(.comment)]:\($s)\(.url)/commit/\(.commit)\($s)\"github.com commit\"\n"'
 git-commit-to-md () { git-repo-and-commit-to-js "$@" | jq-md-url "$git_commit_to_md"; }
 load add-vars git-commit-to-md git_commit_to_md
+$import git-commit-to-md git-repo-and-commit-to-js jq-md-url
 alias gc2md=git-commit-to-md
 
 relative-file-to-js () { jq -R '{ url: ., name: split(".")[0] | split("_")[2] }'; }
