@@ -1,2 +1,3 @@
-# template-minimal
-Minimal template to avoid creating an empty repo when using cli
+# bash func helper
+
+Helper to manages collections of bash function
