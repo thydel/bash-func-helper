@@ -64,7 +64,7 @@ all () { funcs; alias; arrays; }
 none () { :; }
 
 provide () { $import $self; }
-self () { source /dev/stdin <<< "$self () { :; }"; provide | map func-on-a-line; }
+self () { source /dev/stdin <<< "$self () { :; }"; closure $self | map func-on-a-line; }
 $import self provide
 
 main () { (($#)) && { "$@"; exit $?; }; }
