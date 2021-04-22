@@ -15,7 +15,7 @@ _comma := ,
 self := $(lastword $(MAKEFILE_LIST))
 $(self):;
 
-name != source <(misc.sh use real-file-name); real-file-name $(self) | xargs -i basename {} .mk
+name != source <(./try misc use real-file-name); real-file-name $(self) | xargs -i basename {} .mk
 
 base := /usr/local
 bin := $(base)/bin
