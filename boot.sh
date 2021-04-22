@@ -12,8 +12,11 @@ put () { put1 "$@" && { (($# == 2)) && put2 $1 "${@:2:$#}"; } || { (($# > 2)) &&
 
 txt () { txt= "$@"; }
 cmnt='txt put comment'
+help='txt put help'
 
 import='put import'
+
+vars='import cmnt help'
 
 $cmnt fail 'fail with an error message without exiting current shell'
 fail() { unset -v fail; : "${fail:?$@}"; }
@@ -25,9 +28,11 @@ awk.f () { echo "$1 () { awk '${awk[$1]}'; }"; }
 
 func-name () { echo ${BASH_ALIASES[${1:?}]:-$1}; }
 show-func () { func-name $1 | { read f; declare -f $f || fail no such func $f; }; }
+$import show-func func-name fail
 list-all-func () { declare -F | awk '{ print $NF }'; }
 map () { while read; do "$@" "$REPLY"; done; }
 show-all-func () { list-all-func | map show-func; }
+$import show-all-func list-all-func map show-func
 alias show=show-func
 
 load () { source <($@); }
@@ -39,6 +44,15 @@ join () { while read -r; do echo -n "${REPLY}"; echo -ne "${1:-${IFS:0:1}}"; don
 args () { join; }
 $import args join
 
+$cmnt split 'converts args to lines of arg'
+split () { for i in "$@"; do echo "$i"; done; }
+
+words () { while read -r; do split ${REPLY}; done; }
+
+$cmnt list 'convert args or lines of args to line of args'
+list () { (($#)) && split "$@"; [[ -t 0 ]] || words '\n'; }
+$import list split join
+
 put awk func-on-a-line.awk 'f && /^ +};?/ { print $0 ";"; next }'
 put awk func-on-a-line.awk 'f { --f; print $0 ";"; next } NR == 1 || /^ +};?/ { print; ++f; next } 1'
 load awk.f func-on-a-line.awk
@@ -47,7 +61,9 @@ func-on-a-line () { show-func $1 | tac | func-on-a-line.awk | func-on-a-line.sed
 alias short=func-on-a-line
 
 show-all-func-on-a-line () { list-all-func | map func-on-a-line; }
+show-array () { declare -p arrays $1; };
 show-arrays () { declare -p arrays ${arrays[@]}; };
+show-vars () { for n in $vars; do declare -n v=$n; echo $n=${v@Q}; done; }
 
 with-var () { declare -n v=$1; echo $1=${v@Q}; shift; "$@"; }
 
@@ -58,9 +74,23 @@ closure () { { for i in "$@"; do echo $i; closure ${import[$i]}; done; } | sort 
 use () { closure "$@" | map show-func; }
 $import use closure map show-func
 
+use-in-md () { closure "$@" | map func-on-a-line; }
+$import use-in-md closure map func-on-a-line
+group () { put group ${1:?} | list | map use-in-md; }
+$import group put list map use-in-md
+
+run () { use $1; echo "$@"; }
+$import run use
+
+play () { play=bash "$@"; }
+
+rem () { run "${@:2:$#}" | ssh $1 ${play:-cat}; }
+$import rem run
+
 funcs () { show-all-func-on-a-line; }
 arrays () { show-arrays; }
-all () { funcs; alias; arrays; }
+vars () { show-vars; }
+all () { funcs; alias; arrays; vars; }
 none () { :; }
 
 provide () { $import $self; }
