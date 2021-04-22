@@ -2,7 +2,11 @@
 
 self=$(basename "${BASH_SOURCE[0]}" .sh)
 fail () { unset -v fail; : "${fail:?$@}"; }
-list () { ls ${1:?} | xargs basename -s .sh | xargs -i echo source "<($self {})"; }
+list () { ls ${1:?}/*.sh | xargs basename -s .sh | xargs -i echo source "<($self {})"; }
+in-git () { git rev-parse 2> /dev/null; }
+repo-name () { git config --get remote.origin.url | xargs basename -s .git; }
+dev-mode () { in-git && [[ $(repo-name) == bash-func-helper ]]; }
+dev-mode && { BFH_LIB=.; bfh () { try "$@"; }; export -f bfh; }
 lib=${BFH_LIB:-/usr/local/lib/bfh}
 [[ $# == 0 ]] && { list $lib; exit 0; }
 mod=$lib/${1:?}.sh
