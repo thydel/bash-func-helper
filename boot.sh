@@ -77,8 +77,8 @@ closure () { { for i in "$@"; do echo $i; closure ${import[$i]}; done; } | sort 
 use () { closure "$@" | map show; }
 $import use closure map show
 
-group () { put group ${1:?} | list | map use; }
-$import group put list map use-in-md
+group () { use $(put group ${1:?}); }
+$import group put use
 
 run () { use $1; echo "$@"; }
 $import run use
