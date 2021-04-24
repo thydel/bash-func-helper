@@ -2,7 +2,7 @@
 
 self=$(basename "${BASH_SOURCE[0]}" .sh)
 
-arrays=(import assert awk help comment group)
+arrays=(import assert awk help comment group prefix)
 for i in ${arrays[@]}; do eval "declare -A $i=()"; done
 
 put1 () { (($# > 1)) || fail "$@" put array var [val]; }
@@ -69,7 +69,9 @@ local-vars () { for n in "$@"; do declare -n v=$n; echo local $n=${v@Q}; done; }
 add-vars () { declare -f $1 | { mapfile; echo "${MAPFILE[@]:0:2}"; local-vars "${@:2:$#}"; echo "${MAPFILE[@]:2}"; }; }
 
 full () { show=full "$@"; }
+put prefix full 2
 short () { show=short "$@"; }
+put prefix short 2
 
 show () { declare -A a=([full]=show-func [short]=func-on-a-line); ${a[${show:-short}]} "$@"; }
 
@@ -80,7 +82,7 @@ $import use closure map show
 group () { use $(put group ${1:?}); }
 $import group put use
 
-run () { use $1; echo "$@"; }
+run () { use $1; [[ -v prefix[$1] ]] && use ${@:${prefix[$1]}}; echo "$@"; }
 $import run use
 
 play () { play=bash "$@"; }
