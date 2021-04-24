@@ -68,10 +68,10 @@ with-var () { declare -n v=$1; echo $1=${v@Q}; shift; "$@"; }
 local-vars () { for n in "$@"; do declare -n v=$n; echo local $n=${v@Q}; done; }
 add-vars () { declare -f $1 | { mapfile; echo "${MAPFILE[@]:0:2}"; local-vars "${@:2:$#}"; echo "${MAPFILE[@]:2}"; }; }
 
-full () { show=show-func "$@"; }
-short () { show=func-on-a-line "$@"; }
+full () { show=full "$@"; }
+short () { show=short "$@"; }
 
-show () { ${show:-func-on-a-line} "$@"; }
+show () { declare -A a=([full]=show-func [short]=func-on-a-line); ${a[${show:-short}]} "$@"; }
 
 closure () { { for i in "$@"; do echo $i; closure ${import[$i]}; done; } | sort -u; }
 use () { closure "$@" | map show; }
