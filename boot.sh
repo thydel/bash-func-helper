@@ -33,7 +33,6 @@ list-all-func () { declare -F | awk '{ print $NF }'; }
 map () { while read; do "$@" "$REPLY"; done; }
 show-all-func () { list-all-func | map show-func; }
 $import show-all-func list-all-func map show-func
-alias show=show-func
 
 load () { source <($@); }
 
@@ -58,7 +57,6 @@ put awk func-on-a-line.awk 'f { --f; print $0 ";"; next } NR == 1 || /^ +};?/ { 
 load awk.f func-on-a-line.awk
 func-on-a-line.sed () { sed -r -e 's/^ +//' -e 's/ +$//'; }
 func-on-a-line () { show-func $1 | tac | func-on-a-line.awk | func-on-a-line.sed | tac | args; echo; }
-alias short=func-on-a-line
 
 show-all-func-on-a-line () { list-all-func | map func-on-a-line; }
 show-array () { declare -p arrays $1; };
@@ -70,12 +68,15 @@ with-var () { declare -n v=$1; echo $1=${v@Q}; shift; "$@"; }
 local-vars () { for n in "$@"; do declare -n v=$n; echo local $n=${v@Q}; done; }
 add-vars () { declare -f $1 | { mapfile; echo "${MAPFILE[@]:0:2}"; local-vars "${@:2:$#}"; echo "${MAPFILE[@]:2}"; }; }
 
-closure () { { for i in "$@"; do echo $i; closure ${import[$i]}; done; } | sort -u; }
-use () { closure "$@" | map show-func; }
-$import use closure map show-func
+full () { show=show-func "$@"; }
+short () { show=func-on-a-line "$@"; }
 
-use-in-md () { closure "$@" | map func-on-a-line; }
-$import use-in-md closure map func-on-a-line
+show () { ${show:-func-on-a-line} "$@"; }
+
+closure () { { for i in "$@"; do echo $i; closure ${import[$i]}; done; } | sort -u; }
+use () { closure "$@" | map show; }
+$import use closure map show
+
 group () { put group ${1:?} | list | map use-in-md; }
 $import group put list map use-in-md
 
