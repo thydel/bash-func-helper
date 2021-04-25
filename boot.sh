@@ -65,7 +65,7 @@ show-vars () { for n in $vars; do declare -n v=$n; echo $n=${v@Q}; done; }
 
 with-var () { declare -n v=$1; echo $1=${v@Q}; shift; "$@"; }
 
-local-vars () { for n in "$@"; do declare -n v=$n; echo local $n=${v@Q}; done; }
+local-vars () { for n in "$@"; do declare -n v=$n; echo local $n="${v@Q}"; done; }
 add-vars () { declare -f $1 | { mapfile; echo "${MAPFILE[@]:0:2}"; local-vars "${@:2:$#}"; echo "${MAPFILE[@]:2}"; }; }
 
 full () { show=full "$@"; }

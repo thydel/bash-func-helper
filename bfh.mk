@@ -22,7 +22,7 @@ bin := $(base)/bin
 lib := $(base)/lib/$(name)
 
 bins := $(name)
-libs := boot git-to-md misc
+libs := boot git-to-md misc upgrade-jessie
 
 installed := $(bins:%=$(bin)/%) $(libs:%=$(lib)/%.sh)
 
