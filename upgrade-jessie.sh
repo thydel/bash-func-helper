@@ -2,7 +2,7 @@
 
 source <(bfh boot)
 source <(bfh misc)
-bfh misc
+bfh misc group apt
 self=$(basename "${BASH_SOURCE[0]}" .sh)
 
 keep-apt-held () { d=/var/local/apt-hold; mkdir -p $d; aptitude search ~ahold -F %p > $d/$(date +%F); }
