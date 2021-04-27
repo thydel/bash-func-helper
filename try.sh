@@ -3,6 +3,7 @@
 self=$(basename "${BASH_SOURCE[0]}" .sh)
 
 load () { source <($@); }
+comment () { echo -n '# '; "$@"; }
 fail() { unset -v fail; : "${fail:?$@}"; }
 
 ####
@@ -59,11 +60,23 @@ string-to-array () { : ${2:?}; declare -n v=$1; v=(); local i; for ((i=0; i < ${
 
 ####
 
+full () { show=full "$@"; }
+short () { show=short "$@"; }
+
+load dict new prefix
+dict push dict dicts prefix
+args dict set prefix {} 2 -- full short
+
+# comment dict self dict
+
+####
+
 func.name () { echo ${BASH_ALIASES[${1:?}]:-$1}; }
-func.show () { func.name $1 | { read f; declare -f $f || fail no such func $f; }; }
 func.all () { declare -F | while read -a a; do echo ${a[-1]}; done; }
-func.short () {
-    func.show $1 | {
+func.src () { declare -A a=([full]=func.src.std [short]=func.src.one-line); ${a[${show:-short}]} "$@"; }
+func.src.std () { func.name $1 | { read f; declare -f $f || fail no such func $f; }; }
+func.src.one-line () {
+    func.src.std $1 | {
 	mapfile -t;
 	for ((i=2; i < $((${#MAPFILE[*]} - 1)); ++i))
 	do
@@ -74,19 +87,20 @@ func.short () {
     }
 }
 func.closure () { { for i in "$@"; do echo $i; ${FUNCNAME[0]} ${import[$i]}; done; } | sort -u; }
-func.use () { func closure "$@" | map func show; }
+func.use () { func closure "$@" | map func src; }
 
 load macro dispatch func
-dict set import func.show func.name fail
-dict set import func.short func.show
+dict set import func.src.std func.name fail
+dict set import func.src.one-line func.src.std
+dict set import func.src func.src.std func.src.one-line
 dict set import func.use func.closure
 
 ####
 
-funcs () { func all | map func short; }
+funcs () { func all | map func src; }
 arrays () { dict split dict dicts | map dict self; }
 
-all () { funcs; alias; arrays; }
+all () { funcs; alias; arrays; dict self dict; }
 none () { :; }
 
 main () { (($#)) && { "$@"; exit $?; }; }
