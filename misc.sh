@@ -10,6 +10,12 @@ $import real-file-name fail
 
 rg () { : ${1:?}; local c=96; echo $1 | grep -E "^[[:digit:]]+$" && { c=$1; shift; }; command rg -L --no-messages "$@" | cut -c-$c; }
 
+ssh-forget-ip () { (cd; ssh-keygen -f .ssh/known_hosts -R ${1:?}); }
+ssh-learn-ip () { (cd; ssh-keyscan -H $1 | tee -a .ssh/known_hosts); }
+an-ip-changed () { ssh-forget-ip $1; ssh-learn-ip ${1:?}; }
+put group ssh-ip an-ip-changed ssh-forget-ip ssh-learn-ip
+$import $(put group ssh-ip)
+
 apt-search () { declare -A a=([full]= [short]='-F %p'); aptitude ${a[${show:-short}]} search "$@"; }
 apt-alien () { apt-search '~i(!~ODebian)'; }
 $import apt-alien apt-search
@@ -19,7 +25,7 @@ $import apt-held apt-search
 $help apt-held 'Show package on hold'
 put group apt apt-alien apt-held
 
-$import $self no-ipv6-for-ufw real-file-name rg $(put group apt)
+$import $self no-ipv6-for-ufw real-file-name rg $(put group apt) $(put group ssh-ip)
 
 main "$@"
 self
