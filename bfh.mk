@@ -23,6 +23,7 @@ lib := $(base)/lib/$(name)
 
 bins := $(name)
 libs := boot git-to-md misc upgrade-jessie
+libs += boot2 misc2
 
 installed := $(bins:%=$(bin)/%) $(libs:%=$(lib)/%.sh)
 
