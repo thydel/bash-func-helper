@@ -87,6 +87,7 @@ func.src.one-line () {
 	    printf -v n ${MAPFILE[(($i + 1))]}
 	    [[ ${#n} == 1 && ${n:(-1)} == "}" ]] || [[ ${#n} == 2 && ${n:(-2)} == "};" ]] && MAPFILE[$i]+=";";
 	done
+	MAPFILE[-1]+=';'
 	echo ${MAPFILE[@]}
     }
 }
