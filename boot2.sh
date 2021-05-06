@@ -59,6 +59,9 @@ dict push import split list
 array.push () { : ${2:?}; declare -n v=$1; v+=($2); }
 string-to-array () { : ${2:?}; declare -n v=$1; v=(); local i; for ((i=0; i < ${#2}; ++i)); do v[$i]=${2:$i:1}; done; }
 
+@λ () { func.run λ; unset -f λ; }
+try-λ () { seq 3 | map eval $(λ () { expr $1 + $1; }; @λ); }
+
 ####
 
 full () { show=full "$@"; }
