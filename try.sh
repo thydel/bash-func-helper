@@ -33,10 +33,10 @@ list () { for i in "$@"; do echo "$i"; done; }
 split () { list $@; }
 map () { while read; do "${@:-echo}" "$REPLY"; done; }
 args () {
-    declare -a a=("$@"); local k=(${!a[@]}) v=(${a[@]}) s=-- p={} i; declare -A A=()
+    declare -a a=("$@"); local k=(${!a[@]}) v=(${a[@]}) s=-- p={} i x y; declare -A A=()
     for i in ${k[@]}; do A[${v[$i]}]=$i; done
-    i=${A[$s]}
-    declare -a b=("${a[@]:0:$i}") c=("${a[@]:$(($i + 1))}")
+    x=${A[$s]:-$(($i-1))} y=${A[$s]:-$i}
+    declare -a b=("${a[@]:0:$y}") c=("${a[@]:$(($x + 1))}")
     for i in "${c[@]}"; do "${b[@]//$p/$i}"; done
 }
 
@@ -108,5 +108,3 @@ main () { (($#)) && { "$@"; exit $?; }; }
 main "$@"
 
 all
-
-
