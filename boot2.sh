@@ -93,12 +93,14 @@ func.src.one-line () {
 }
 func.closure () { { for i in "$@"; do echo $i; ${FUNCNAME[0]} ${import[$i]}; done; } | sort -u; }
 func.use () { func closure "$@" | map func src; }
+func.run () { func use $1; [[ -v prefix[$1] ]] && func use ${@:${prefix[$1]}}; echo "$@"; }
 
 load macro dispatch func
 dict set import func.src.std func.name fail
 dict set import func.src.one-line func.src.std
 dict set import func.src func.src.std func.src.one-line
 dict set import func.use func.closure
+dict set import func.run func.use
 
 ####
 
