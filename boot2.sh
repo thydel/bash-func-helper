@@ -8,7 +8,7 @@ fail() { unset -v fail; : "${fail:?$@}"; }
 
 ####
 
-macro.dispatch.body () { ${FUNCNAME[0]}.$1 "${@:2}"; }
+macro.dispatch.body () { ${FUNCNAME[0]}.${1:-default} "${@:2}"; }
 macro.dispatch () { declare -f ${FUNCNAME[0]}.body | { mapfile; MAPFILE[0]="$1 ()"; echo "${MAPFILE[@]}"; }; }
 load macro.dispatch macro
 
@@ -32,6 +32,7 @@ dict.del () { local -n d=$1; unset d[$2]; }
 list () { for i in "$@"; do echo "$i"; done; }
 split () { list $@; }
 map () { while read; do "${@:-echo}" "$REPLY"; done; }
+words () { while read; do split ${REPLY}; done; }
 args () {
     declare -a a=("$@"); local k=(${!a[@]}) v=(${a[@]}) s=-- p={} i x y; declare -A A=()
     for i in ${k[@]}; do A[${v[$i]}]=$i; done
@@ -110,7 +111,10 @@ arrays () { dict split dict dicts | map dict self; }
 all () { funcs; alias; arrays; dict self dict; }
 none () { :; }
 
-self () { source /dev/stdin <<< "$self () { :; }"; func closure $self | map func src; }
+load macro dispatch self
+self.declare () { [[ "$self" ]] || return 1; source /dev/stdin <<< "$self () { :; }"; }
+self.default () { self.declare && func closure $self | map func src; }
+self.list () { self.declare && dict get import $self | words | map func src; }
 
 main () { (($#)) && { "$@"; exit $?; }; }
 
