@@ -56,6 +56,7 @@ dict push import split list
 
 ####
 
+array.push () { : ${2:?}; declare -n v=$1; v+=($2); }
 string-to-array () { : ${2:?}; declare -n v=$1; v=(); local i; for ((i=0; i < ${#2}; ++i)); do v[$i]=${2:$i:1}; done; }
 
 ####
