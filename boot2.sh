@@ -103,7 +103,7 @@ arrays () { dict split dict dicts | map dict self; }
 all () { funcs; alias; arrays; dict self dict; }
 none () { :; }
 
-self () { source /dev/stdin <<< "$self () { :; }"; func closure $self | funcs; }
+self () { source /dev/stdin <<< "$self () { :; }"; func closure $self | map func src; }
 
 main () { (($#)) && { "$@"; exit $?; }; }
 
