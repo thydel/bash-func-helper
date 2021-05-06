@@ -18,7 +18,11 @@ dict set import bc.kmgt map args kmgt
 find.size () { find -type f -name "*.${1:?}" -print0 | xargs -0 du -sb | awk.sum | bc.kmgt ${2}; }
 dict set import find.size awk.sum bc.kmgt
 
-dict set import $self awk.sum bc.kmgt find.size
+use-greek-letters () {
+    xmodmap -pke | grep dead_greek | ifne -n xmodmap -pk | grep Control_R | awk '{print $1}' |
+	xargs -i echo xmodmap -e '"keycode {} = dead_greek dead_greek dead_greek dead_greek"'; }
+
+dict set import $self awk.sum bc.kmgt find.size use-greek-letters
 
 main "$@"
 all
