@@ -18,13 +18,13 @@ dict.new () { for i in "$@"; do echo declare -Ag "$i=()"; done; }
 dict.self () { local -n d=$1; declare -p $1; }
 dict.set () { local -n d=$1; d[$2]="${@:3:$#}"; }
 dict.get () { local -n d=$1; echo "${d[$2]}"; }
-dict.split () { dict.get "$@" | map split; }
+dict.split () { dict.get "$@" | words; }
 dict.push () { local -n d=$1; d[$2]+="${IFS:0:1}${@:3:$#}"; }
 dict.pop () { local -n d=$1; declare -a a=(${d[$2]}); unset a[-1]; d[$2]="${a[@]}"; }
 dict.append () { local -n d=$1; d[$2]+="${@:3:$#}"; }
 dict.keys () { local -n d=$1; list "${!d[@]}"; }
 dict.values () { local -n d=$1; list "${d[@]}"; }
-dict.list () { local -n d=$1; paste <(dict.keys $1) <(dict.values $1); }
+dict.list () { local -n d=$1; paste <(dict.keys $1) <(dict.values $1) | column -s "$(echo -e '\t')" -t; }
 dict.del () { local -n d=$1; unset d[$2]; }
 
 ####
@@ -32,7 +32,7 @@ dict.del () { local -n d=$1; unset d[$2]; }
 list () { for i in "$@"; do echo "$i"; done; }
 split () { list $@; }
 map () { while read; do "${@:-echo}" "$REPLY"; done; }
-words () { while read; do split ${REPLY}; done; }
+words () { map split; }
 args () {
     declare -a a=("$@"); local k=(${!a[@]}) v=(${a[@]}) s=-- p={} i x y; declare -A A=()
     for i in ${k[@]}; do A[${v[$i]}]=$i; done
@@ -50,10 +50,11 @@ load dict new $(dict split dict dicts)
 dict set dict funcs new self set get split push pop append keys values list del
 dict set import dict $(args echo dict.{} -- $(dict get dict funcs))
 
-dict push import dict.split dict.get
-args dict push import dict.{} list -- keys values
+dict set import dict.split dict.get words
+args dict set import dict.{} list -- keys values
 
-dict push import split list
+dict set import split list
+dict set import words map split
 
 ####
 
