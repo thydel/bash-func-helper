@@ -34,7 +34,11 @@ init-git-store-date () {
 }
 dict set import init-git-store-date inside-git-p
 
-dict set import $self awk.sum bc.kmgt find.size use-greek-letters init-git-store-date
+add-line () { echo "${1:?}" | tee -a "${2:?}"; }
+line-in-file () { grep -q "^${1:?}$" "${2:?}" || add-line "$1" "$2"; }
+dict set import line-in-file add-line
+
+dict set import $self awk.sum bc.kmgt find.size use-greek-letters init-git-store-date line-in-file
 
 main "$@"
 all
