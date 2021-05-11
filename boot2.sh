@@ -24,6 +24,14 @@ args () {
 
 ####
 
+var.type () {
+    local dp=$(declare -p "$1" 2> /dev/null);
+    [[ "$dp" =~ "declare --" ]] && { echo var; return; }
+    [[ "$dp" =~ "declare -a" ]] && { echo array; return; }
+    [[ "$dp" =~ "declare -A" ]] && { echo dict; return; }
+    declare -f "$1" > /dev/null && { echo func; return; }
+    echo undef
+}
 var.self () { local -n __=$1; echo $1=${__@Q}; }
 var.use () { var.self "$@"; shift; "$@"; }
 
