@@ -2,30 +2,11 @@
 
 self=$(basename "${BASH_SOURCE[0]}" .sh)
 
+####
+
 load () { source <($@); }
 comment () { echo -n '# '; "$@"; }
 fail() { unset -v fail; : "${fail:?$@}"; }
-
-####
-
-macro.dispatch.body () { ${FUNCNAME[0]}.${1:-default} "${@:2}"; }
-macro.dispatch () { declare -f ${FUNCNAME[0]}.body | { mapfile; MAPFILE[0]="$1 ()"; echo "${MAPFILE[@]}"; }; }
-load macro.dispatch macro
-
-####
-
-dict.new () { for i in "$@"; do echo declare -Ag "$i=()"; done; }
-dict.self () { local -n d=$1; declare -p $1; }
-dict.set () { local -n d=$1; d[$2]="${@:3:$#}"; }
-dict.get () { local -n d=$1; echo "${d[$2]}"; }
-dict.split () { dict.get "$@" | words; }
-dict.push () { local -n d=$1; d[$2]+="${IFS:0:1}${@:3:$#}"; }
-dict.pop () { local -n d=$1; declare -a a=(${d[$2]}); unset a[-1]; d[$2]="${a[@]}"; }
-dict.append () { local -n d=$1; d[$2]+="${@:3:$#}"; }
-dict.keys () { local -n d=$1; list "${!d[@]}"; }
-dict.values () { local -n d=$1; list "${d[@]}"; }
-dict.list () { local -n d=$1; paste <(dict.keys $1) <(dict.values $1) | column -s "$(echo -e '\t')" -t; }
-dict.del () { local -n d=$1; unset d[$2]; }
 
 ####
 
@@ -43,23 +24,78 @@ args () {
 
 ####
 
-load macro dispatch dict
-load dict new dict
-dict set dict dicts import doc
-load dict new $(dict split dict dicts)
-dict set dict funcs new self set get split push pop append keys values list del
-dict set import dict $(args echo dict.{} -- $(dict get dict funcs))
+var.self () { local -n __=$1; echo $1=${__@Q}; }
+var.use () { var.self "$@"; shift; "$@"; }
 
-dict set import dict.split dict.get words
-args dict set import dict.{} list -- keys values
+array-or-dict.self () { declare -p $1; }
 
-dict set import split list
-dict set import words map split
+dict.new () { args echo declare -Ag '{}=()' -- "$@"; }
+dict.self () { array-or-dict.self "$@"; }
+dict.set () { local -n __=$1; __[$2]="${@:3:$#}"; }
+dict.get () { local -n __=$1; echo "${__[$2]}"; }
+dict.split () { dict.get "$@" | words; }
+dict.push () { local -n __=$1; __[$2]+="${IFS:0:1}${@:3:$#}"; }
+dict.pop () { local -n __=$1; declare -a a=(${__[$2]}); unset a[-1]; __[$2]="${a[@]}"; }
+dict.append () { local -n __=$1; __[$2]+="${@:3:$#}"; }
+dict.keys () { local -n __=$1; list "${!__[@]}"; }
+dict.values () { local -n __=$1; list "${__[@]}"; }
+dict.list () { paste <(dict.keys $1) <(dict.values $1) | column -s "$(echo -e '\t')" -t; }
+dict.del () { local -n __=$1; unset __[$2]; }
+
+array.new () { args echo declare -ag '{}=()' -- "$@"; }
+array.self () { array-or-dict.self "$@"; }
+array.set () { local -n __=${1:?}; __=("${@:2}"); }
+array.get () { local -n __=${1:?}; echo "${__[@]}"; }
+array.push () { : ${2:?}; declare -n __=$1; __+=($2); }
+array.values () { dict.values "$@"; }
+
+string.to-array () { : ${2:?}; declare -n v=$1; v=(); local i; for ((i=0; i < ${#2}; ++i)); do v[$i]=${2:$i:1}; done; }
 
 ####
 
-array.push () { : ${2:?}; declare -n v=$1; v+=($2); }
-string-to-array () { : ${2:?}; declare -n v=$1; v=(); local i; for ((i=0; i < ${#2}; ++i)); do v[$i]=${2:$i:1}; done; }
+macro.dispatch.body () { ${FUNCNAME[0]}.${1:-default} "${@:2}"; }
+macro.dispatch () { declare -f ${FUNCNAME[0]}.body | { mapfile; MAPFILE[0]="$1 ()"; echo "${MAPFILE[@]}"; }; }
+
+####
+
+load macro.dispatch macro
+load macro dispatch dict
+load macro dispatch array
+
+load array new arrays
+array set arrays vars dicts
+load array new $(array get arrays)
+array push arrays arrays
+
+array set dicts array dict import
+load dict new $(array get dicts)
+
+import () { dict set import "$@"; }
+
+import split list
+import words map split
+
+dict set dict funcs new self set get split push pop append keys values list del
+import dict $(args echo dict.{} -- $(dict get dict funcs))
+
+import dict.self array-or-dict.self
+import dict.split dict.get words
+args import dict.{} list -- keys values
+
+####
+
+dict set array funcs new self set push values
+import array $(args echo array.{} -- $(dict get array funcs))
+
+import array.self array-or-dict.self
+import array.values dict.values
+
+####
+
+test='test vars'
+array push vars test
+
+####
 
 @λ () { func.run λ; unset -f λ; }
 try-λ () { seq 3 | map eval $(λ () { expr $1 + $1; }; @λ); }
@@ -70,10 +106,8 @@ full () { show=full "$@"; }
 short () { show=short "$@"; }
 
 load dict new prefix
-dict push dict dicts prefix
+array push dicts prefix
 args dict set prefix {} 2 -- full short
-
-# comment dict self dict
 
 ####
 
@@ -95,30 +129,33 @@ func.src.one-line () {
 }
 func.closure () { { for i in "$@"; do echo $i; ${FUNCNAME[0]} ${import[$i]}; done; } | sort -u; }
 func.use () { func closure "$@" | map func src; }
-func.run () { func use $1; [[ -v prefix[$1] ]] && func use ${@:${prefix[$1]}}; echo "$@"; }
+func.run () { func use $1; [[ -v prefix[$1] ]] && func use ${@:${prefix[$1]}}; echo "${@@Q}"; }
 
 load macro dispatch func
-dict set import func.src.std func.name fail
-dict set import func.src.one-line func.src.std
-dict set import func.src func.src.std func.src.one-line
-dict set import func.use func.closure
-dict set import func.run func.use
+import func.src.std func.name fail
+import func.src.one-line func.src.std
+import func.src func.src.std func.src.one-line
+import func.use func.closure
+import func.run func.use
 
 ####
 
 funcs () { func all | map func src; }
-arrays () { dict split dict dicts | map dict self; }
+dicts () { array values dicts | map dict self; }
+arrays () { array values arrays | map array self; }
+vars () { array values vars | map var.self; }
 
-all () { funcs; alias; arrays; dict self dict; }
+all () { funcs; alias; dicts; arrays; vars; }
 none () { :; }
 
 load macro dispatch self
-self.declare () { [[ "$self" ]] || return 1; source /dev/stdin <<< "$self () { :; }"; }
-self.default () { self.declare && func closure $self | map func src; }
+self.declare.build.body () { vars; func use ${FUNCNAME[0]}; echo "${@@Q:2}"; }
+self.declare.build () { declare -f ${FUNCNAME[0]}.body | { mapfile; MAPFILE[0]="$1 ()"; echo "${MAPFILE[@]}"; }; }
+self.declare () { [[ "$self" ]] || return 1; load self.declare.build $self; func src $self; }
+self.default () { vars; self.declare && func closure $self | map func src; }
 self.list () { self.declare && dict get import $self | words | map func src; }
 
 main () { (($#)) && { "$@"; exit $?; }; }
 
 main "$@"
-
 all
