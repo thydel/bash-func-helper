@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+bash -version
 
 self=$(basename "${BASH_SOURCE[0]}" .sh)
 
@@ -6,12 +8,20 @@ shopt -s expand_aliases
 
 alias self='local self=${FUNCNAME[0]}'
 
+str.cat () { local IFS=''; echo "$*"; }
+
 declare -A funcs_map=();
 func.new.assert () { :; }
-alias func-to-var='local A=${1//[.-?]/_}_'
-func.new () { self; $self.assert "$@"; func-to-var; funcs_map[$1]=$A; eval declare -ag "$A=()"; func.use "$@"; }
-func.use () { func-to-var; shift; local -n __=$A; __+=("$@"); }
-unalias func-to-var
+if [ $(str.cat ${BASH_VERSINFO[@]:0:3}) == "5 0 3" ]
+then
+    alias func-to-var='local A=${1//[.-?]/_}_'
+    func.new () { self; $self.assert "$@"; func-to-var; funcs_map[$1]=$A; eval declare -ag "$A=()"; func.use "$@"; }
+    func.use () { func-to-var; shift; local -n __=$A; __+=("$@"); }
+    unalias func-to-var
+else
+    func.new () { self; $self.assert "$@"; local A=${1//[.-?]/_}_; funcs_map[$1]=$A; eval declare -ag "$A=()"; func.use "$@"; }
+    func.use () { local A=${1//[.-?]/_}_; shift; local -n __=$A; __+=("$@"); }
+fi
 
 alias new=func.new
 
