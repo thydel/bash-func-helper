@@ -10,7 +10,7 @@ fail() { unset -v fail; : "${fail:?$@}"; }
 
 ####
 
-list () { for i in "$@"; do echo "$i"; done; }
+list () { for i do echo "$i"; done; }
 split () { list $@; }
 map () { while read; do "${@:-echo}" "$REPLY"; done; }
 words () { map split; }
