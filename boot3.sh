@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-bash -version
-
 self=$(basename "${BASH_SOURCE[0]}" .sh)
 
 shopt -s expand_aliases
