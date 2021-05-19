@@ -9,9 +9,6 @@ deps=${BFH_DEPS:-_deps}
 funcs=${BFH_FUNCS:-_funcs}
 vars=${BFH_VARS:-_vars}
 
-alias deps='deps.set $deps'
-declare -A $deps
-
 deps.set () {
     local -n deps_dict=${1:?}
     (($# == 2)) && { unset deps_dict[$2]; return; }
@@ -25,6 +22,10 @@ deps.get () {
     local -n deps_dict=${2:?}
     deps_ret=(${deps_dict[${3:?}]})
 }
+
+#alias deps='deps.set $deps'
+declare -A $deps
+deps () { deps.set $deps "$@"; }
 
 fail() { unset -v fail; echo ${FUNCNAME[@]} >&2; : "${fail:?$@}"; }
 assert() { "$@" || fail ${BASH_SOURCE[-1]}, ${FUNCNAME[-1]}, "$@"; }; deps assert fail
@@ -79,7 +80,7 @@ deps.closure () {
     assert test $# -ge 2
     local -n deps_closure=$1
     test ${#deps_closure[*]} -gt 0 || return 1
-    local -Ag seen=()
+    local -A seen=()
     pp.deps.closure "$@"
 }
 pp.deps.closure () {
