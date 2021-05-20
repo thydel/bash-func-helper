@@ -44,14 +44,14 @@ funcs.set () { list.to-enum $funcs < <(declare -F | while read; do echo ${REPLY#
 deps vars.set list.to-enum $vars
 deps funcs.set list.to-enum $funcs
 
-var.src () { local -n ref_vars=$vars; test -v ref_vars[$1] || fail $1 is not a $var; declare -p $1; }
+var.src () { local -n ref_vars=$vars; test -v ref_vars[$1] || fail $1 is not a $vars; declare -p $1; }
 deps var.src fail
 
 func.src () { local -A a=([std]=func.src.std [line]=func.src.line); ${a[${src:-line}]} "$@"; }
 func.src.std () {
     local f=${BASH_ALIASES[${1:?}]:-$1}
     local -n ref_funcs=$funcs
-    test -v ref_funcs[$f] || fail $f is not in $func && declare -f $f
+    test -v ref_funcs[$f] || fail $f is not a $funcs && declare -f $f
 }
 func.src.line () {
     < <(func.src.std $1) mapfile -t
