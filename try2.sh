@@ -23,9 +23,9 @@ deps.get () {
     deps_ret=(${deps_dict[${3:?}]})
 }
 
-#alias deps='deps.set $deps'
 declare -A $deps
-deps () { deps.set $deps "$@"; }
+alias deps='deps.set $deps'
+deps deps.set $deps
 
 fail() { unset -v fail; echo ${FUNCNAME[@]} >&2; : "${fail:?$@}"; }
 assert() { "$@" || fail ${BASH_SOURCE[-1]}, ${FUNCNAME[-1]}, "$@"; }; deps assert fail
@@ -47,9 +47,17 @@ deps funcs.set list.to-enum $funcs
 var.src () { local -n ref_vars=$vars; test -v ref_vars[$1] || fail $1 is not a $vars; declare -p $1; }
 deps var.src fail
 
+func.ref-name () {
+    assert test $# -eq 2
+    local -n func_name=${1:?}; func_name=$2; local alias=${BASH_ALIASES[$2]}
+    [[ "$alias" ]] || return
+    local tmp=($alias)
+    func_name=${tmp[0]}
+}
 func.src () { local -A a=([std]=func.src.std [line]=func.src.line); ${a[${src:-line}]} "$@"; }
 func.src.std () {
-    local f=${BASH_ALIASES[${1:?}]:-$1}
+    assert test $# -eq 1
+    local f; func.ref-name f $1
     local -n ref_funcs=$funcs
     test -v ref_funcs[$f] || fail $f is not a $funcs && declare -f $f
 }
@@ -64,15 +72,20 @@ func.src.line () {
     MAPFILE[-1]+=';'
     echo ${MAPFILE[@]}
 }
+deps dunc.ref-name assert
 deps func.src func.src.std func.src.line
 deps func.src.line func.src.std $funcs
-deps func.src.std fail
+deps func.src.std assert func.ref-name fail
 
 any.src () {
+    assert test $# -eq 1
+    local f; func.ref-name f $1
     local -n ref_funcs=$funcs ref_vars=$vars
-    test -v ref_vars[${1:?}] && declare -p $1; test -v ref_funcs[${BASH_ALIASES[$1]:-$1}] && func.src $1
+    test -v ref_vars[$1] && declare -p $1
+    test -v ref_funcs[$f] && func.src $f
+    test -v BASH_ALIASES[$1] && echo alias deps=${BASH_ALIASES[deps]@Q}
 }
-deps any.src $vars $funcs func.src
+deps any.src assert func.ref-name $vars $funcs func.src
 alias src=any.src
 
 closure () { deps.closure $deps "$@"; }
@@ -84,8 +97,9 @@ deps.closure () {
     pp.deps.closure "$@"
 }
 pp.deps.closure () {
+    local dep
     for i in "${@:2}"; do
-	local dep=${BASH_ALIASES[$i]:-$i}
+	func.ref-name dep $i
 	[[ -v deps_closure[$dep] ]] || fail $dep not in $1; echo $i; deps.closure.one $dep
     done
 }
