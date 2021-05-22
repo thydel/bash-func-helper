@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
 self=$(basename "${BASH_SOURCE[0]}" .sh)
+eval "$self () { :; }"
 
 shopt -s expand_aliases
-alias self='local self=${FUNCNAME[0]}'
+alias self='local self=${FUNCNAME[0]}; local name=${self//[-.?]/_}'
 
 deps=${BFH_DEPS:-_deps}
 funcs=${BFH_FUNCS:-_funcs}
@@ -35,14 +36,21 @@ pp.list () { local i; for i do echo "$i"; done; }
 list.map () { while read; do "$@" "$REPLY"; done; }
 enum.map () { local -n map_enum=$1; local i; for i in ${!map_enum[@]}; do $2 $i; done; }
 
-list.to-enum () { self; declare -Ag $1; eval "$1=()"; $self.loop $1; }
-list.to-enum.loop () { local -n list_to_enum=$1; local -i i; while read; do list_to_enum[$REPLY]=$((i++)); done; }
-deps list.to-enum.loop list.to-enum
+enum.clear () { declare -Ag $1; local -n enum_clear=$1; enum_clear=(); }
+enum.add () {
+    local -n in_enum=$1; local -i i=${#in_enum[*]};
+    if [[ $# -gt 1 ]]; then shift; local e; for e; do in_enum[$e]=$((i++)); done
+    else while read; do in_enum[$REPLY]=$((i++)); done; fi
+}
 
-vars.set () { list.to-enum $vars < <(comm -23 <(compgen -v | sort) <(compgen -e | sort) | grep -v '^[A-Z_0-9]*$'); }
-funcs.set () { list.to-enum $funcs < <(declare -F | while read; do echo ${REPLY#declare -f}; done;); }
-deps vars.set list.to-enum $vars
-deps funcs.set list.to-enum $funcs
+vars.set () { enum.clear $vars; enum.add $vars < <(comm -23 <(compgen -v | sort) <(compgen -e | sort) | grep -v '^[A-Z_0-9]*$'); }
+funcs.set () { enum.clear $funcs; enum.add $funcs < <(declare -F | while read; do echo ${REPLY#declare -f}; done;); }
+deps vars.set enum.clear $vars enum.add
+deps funcs.set enum.clear $funcs enum.add
+
+vars.add () { enum.add $vars "$@"; }
+funcs.add () { enum.add $funcs "$@"; }
+deps $self vars.add funcs.add
 
 var.src () { local -n ref_vars=$vars; test -v ref_vars[$1] || fail $1 is not a $vars; declare -p $1; }
 deps var.src fail
@@ -72,7 +80,7 @@ func.src.line () {
     MAPFILE[-1]+=';'
     echo ${MAPFILE[@]}
 }
-deps dunc.ref-name assert
+deps func.ref-name assert
 deps func.src func.src.std func.src.line
 deps func.src.line func.src.std $funcs
 deps func.src.std assert func.ref-name fail
@@ -129,16 +137,16 @@ func.run () { func.use ${1:?}; echo "${@@Q}"; }
 deps func.run func.use
 alias run=func.run
 
-all () { funcs.src; vars.src; alias; }
+main () { (($#)) && { eval "$@"; exit $?; }; }
 
-eval "$self () { :; }"
+all () { funcs.src; vars.src; alias; echo shopt -s expand_aliases; }
+deps all main
+
 deps $self func.run
 
 any.sync () { funcs.set; vars.set; }
 deps any.sync funcs.set vars.set
 any.sync
-
-main () { (($#)) && { "$@"; exit $?; }; }
 
 main "$@"
 all
