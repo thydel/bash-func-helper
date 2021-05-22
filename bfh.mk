@@ -33,4 +33,16 @@ $(lib):; mkdir -p $@
 
 install: phony $(installed)
 
+ifeq ($(and $(filter diff/%,$(MAKECMDGOALS)),T),T)
+date != date +%s
+date.first := 0000000000
+date.pat := [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]
+endif
+diff/%: phony | .diff/%; @try $(@F) > $|/$(date); ls $| | tail -2 | (cd $|; xargs diff || ls | tail -1 | xargs rm)
+diff/%/clear: phony; @rm -f .$(@D)/$(date.pat); test -d .$(@D) && rmdir .$(@D) || true
+.diff/%:; @test -f $(@F).sh && (mkdir -p $@; try $(@F) > $@/$(date.first))
+.PRECIOUS: .diff/%
+
+once: phony; grep -q .diff .git/info/exclude || echo .diff >> .git/info/exclude
+
 main: phony install
