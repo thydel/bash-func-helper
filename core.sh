@@ -36,6 +36,9 @@ pp.list () { local i; for i do echo "$i"; done; }
 list.map () { while read; do "$@" "$REPLY"; done; }
 enum.map () { local -n map_enum=$1; local i; for i in ${!map_enum[@]}; do $2 $i; done; }
 
+array.has () { assert test $# -eq 2; local -n in_array=$1; local i; for i in "${in_array[@]}"; do [[ "$2" == "$i" ]] && return; done; return 1; }
+deps array.has assert
+
 enum.clear () { declare -Ag $1; local -n enum_clear=$1; enum_clear=(); }
 enum.add () {
     local -n in_enum=$1; local -i i=${#in_enum[*]};
