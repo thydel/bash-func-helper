@@ -66,6 +66,12 @@ func.ref-name () {
     local tmp=($alias)
     func_name=${tmp[0]}
 }
+func.is? () {
+    assert test $# -eq 1
+    local f; func.ref-name f $1
+    local -n ref_funcs=$funcs
+    test -v ref_funcs[$f] || return 1
+}
 func.src () { local -A a=([std]=func.src.std [line]=func.src.line); ${a[${src:-line}]} "$@"; }
 func.src.std () {
     assert test $# -eq 1
