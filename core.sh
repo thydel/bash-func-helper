@@ -28,8 +28,8 @@ declare -A $deps
 alias deps='deps.set $deps'
 deps deps.set $deps
 
-fail() { unset -v fail; echo ${FUNCNAME[@]} >&2; : "${fail:?$@}"; }
-assert() { "$@" || fail ${BASH_SOURCE[-1]}, ${FUNCNAME[-1]}, "$@"; }; deps assert fail
+fail() { unset -v fail; (echo ${BASH_SOURCE[-1]} ${FUNCNAME[@]}; echo "$@") >&2; : "${fail:?''}"; }
+assert() { "$@" || fail "$@"; }; deps assert fail
 not () { ! "$@"; }
 
 pp.list () { local i; for i do echo "$i"; done; }
