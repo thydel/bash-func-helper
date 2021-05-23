@@ -148,6 +148,10 @@ func.run () { func.use ${1:?}; echo "${@@Q}"; }
 deps func.run func.use
 alias run=func.run
 
+func.run-with () { func.use ${1:?}; shift; echo "${@}"; }
+deps func.run-with func.use
+alias with=func.run-with
+
 main () { (($#)) && { eval "$@"; exit $?; }; }
 
 all () { funcs.src; vars.src; alias; echo shopt -s expand_aliases; }
