@@ -91,6 +91,7 @@ func.src.line () {
     echo ${MAPFILE[@]}
 }
 deps func.ref-name assert
+deps func.is? assert func.ref-name
 deps func.src func.src.std func.src.line
 deps func.src.line func.src.std $funcs
 deps func.src.std assert func.ref-name fail
