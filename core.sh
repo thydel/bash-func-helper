@@ -28,6 +28,7 @@ declare -A $deps
 alias deps='deps.set $deps'
 deps deps.set $deps
 
+nil () { :; }
 fail() { unset -v fail; (echo ${BASH_SOURCE[-1]} ${FUNCNAME[@]}; echo "$@") >&2; : "${fail:?''}"; }
 assert() { "$@" || fail "$@"; }; deps assert fail
 not () { ! "$@"; }
