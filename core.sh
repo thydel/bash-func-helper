@@ -119,7 +119,7 @@ pp.deps.closure () {
     local dep
     for i in "${@:2}"; do
 	func.ref-name dep $i
-	[[ -v deps_closure[$dep] ]] || fail $dep not in $1; echo $i; deps.closure.one $dep
+	[[ -v deps_closure[$dep] ]] || { func.is? $dep && { echo $dep; return; } || fail $dep not a func; }; echo $i; deps.closure.one $dep
     done
 }
 deps.closure.one () {
