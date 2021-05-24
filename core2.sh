@@ -47,12 +47,13 @@ name names-show names.show Names
 ####
 
 nil () { :; }
-fail() { unset -v fail; (echo ${BASH_SOURCE[-1]} ${FUNCNAME[@]}; echo "$@") >&2; : "${fail:?''}"; }
+error () { echo "ERROR: $@" >&2; return 1; }
+fail() { unset -v fail; (echo ${BASH_SOURCE[-1]} ${FUNCNAME[@]}; echo "FAIL: $@") >&2; : "${fail:?''}"; }
 assert() { "$@" || fail "$@"; }
 false && alias assert=': '
 not () { ! "$@"; }
 
-names nil not
+names nil not error
 name assert fail
 
 ####
@@ -126,7 +127,7 @@ name.src () {
     name.func? $1 && { func.src $1; let ++found; }
     { name.param? $1 || name.array? $1 || name.assoc? $1; } && { declare -p $1; let ++found; }
     ((found)) && return
-    echo $1 is not defined >&2; return 1
+    error $1 is not defined
 }
 names.src () {
     local -A seen=(); local i
@@ -141,7 +142,7 @@ names.src () {
 }
 alias src=names.src
 name src names.src
-name name.src name.{pname,alias,func,param,array,assoc}? func.src
+name name.src name.{pname,alias,func,param,array,assoc}? func.src error
 name-push name.src; rpop ret
 name-dist nil $ret
 name names.src name.src
@@ -167,17 +168,20 @@ names.closure-rec assert
 
 ####
 
-use () { src $(closure "${@:?}"); }
-name use src closure
+aliases () { echo shopt -s expand_aliases; }
+name aliases
+
+use () { aliases; src $(closure "${@:?}"); }
+name use aliases src closure
 
 run () { use ${1:?}; echo "${@@Q}"; }
 name run use
 
-all () { src $(closure $(names-list)); echo shopt -s expand_aliases; }
-name all src closure names-list
-
 main () { (($#)) && { eval "$@"; exit $?; }; }
 name main all
+
+all () { aliases; src $(closure $(names-list)); }
+name all $(names-list)
 
 main "$@"
 all
