@@ -1,7 +1,10 @@
 #!/bin/bash
 
-source <(bfh boot)
+source <(bfh core2)
+
+shopt -s expand_aliases
 self=$(basename "${BASH_SOURCE[0]}" .sh)
+eval "$self () { :; }"
 
 debian-version-p () { (source /etc/os-release && ((VERSION_ID == ${1:-10}))); }
 
@@ -19,3 +22,8 @@ compile-and-install-bash-5.1 () {
     make
     sudo make install
 }
+
+name $self debian-version-p package-installed-p install-package-if-not-installed compile-and-install-bash-5.1
+
+main "$@"
+use $self
