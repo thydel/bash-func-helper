@@ -8,6 +8,10 @@ self=$(basename "${BASH_SOURCE[0]}" .sh)
 top+=(pdf.encrypted)
 pdf.encrypted () { qpdf --is-encrypted "$1" && echo "$1"; }
 
+read -rd '' pdf_fix_some_refs <<!
+[PDF documents. Orphaned objects and references.]: https://forum.patagames.com/posts/t497-PDF-documents--Orphaned-objects-and-references
+[Remove not needed objects from pdf]: https://github.com/qpdf/qpdf/issues/174
+!
 top+=(pdf.fix-some)
 pdf.fix-some () {
     : ${2:?}
