@@ -25,8 +25,8 @@ pdf.fix-some () {
     # fix QDF after edition
     fix-qdf ~/tmp/stripped.qdf > ~/tmp/fixed.qdf
     # make a PDF from stripped QDF removing unreferenced unwanted objects
-    qpdf ~/tmp/fixed.qdf $(basename "$2" .pdf)-fixed.pdf
-    touch -r $(basename "$2" .pdf)-fixed.pdf ~/tmp/fixed.qdf
+    local fixed=$(basename "$2" .pdf)-fixed.pdf
+    qpdf ~/tmp/fixed.qdf $fixed; touch -r $2 $fixed
 }
 name pdf.fix-some pdf.encrypted
 
