@@ -55,6 +55,9 @@ $import $self apt-add-epi-key
 apt-install-missing () { DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates; }
 $import $self apt-install-missing
 
+apply-deborphan () { while deborphan | line; do deborphan | xargs -r aptitude -y remove; done; }
+$import $self apply-deborphan
+
 main "$@"
 self
 arrays
