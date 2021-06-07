@@ -98,10 +98,10 @@ funcSrcStd () { declare -f ${1:?}; }
 funcSrcLine () {
     < <(declare -f ${1:?}) mapfile -t
     ((${#MAPFILE[*]})) || return 1
-    local i
-    for ((i = 2; i < $((${#MAPFILE[*]} - 1)); ++i))
-    do
-	printf -v n %s ${MAPFILE[(($i + 1))]}
+    local i t
+    for ((i = 2; i < $((${#MAPFILE[*]} - 1)); ++i)); do
+	t=${MAPFILE[(($i + 1))]}
+	printf -v n ${t/\%/%%}
 	[[ ${#n} == 1 && ${n:(-1)} == "}" ]] || [[ ${#n} == 2 && ${n:(-2)} == "};" ]] && MAPFILE[$i]+=";";
     done
     MAPFILE[-1]+=';'
@@ -158,7 +158,7 @@ closure_Rec () {
     assert test ${FUNCNAME[1]} = ${FUNCNAME[0]%_*} -o ${FUNCNAME[1]} = main -o ${FUNCNAME[1]} = ${FUNCNAME[0]}
     local -n A=${1:?}; local i
     for i in ${@:2}; do
-	false && test -v A[$i] || fail $i not in $1
+	false && { test -v A[$i] || fail $i not in $1; }
 	test -v seen[$i] && continue
 	echo $i; ((++seen[$i]))
 	local a=(${A[$i]})
