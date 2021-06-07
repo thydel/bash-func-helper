@@ -67,9 +67,7 @@ name deps
 name doc
 
 alias names=Names.dict.pp.add-names
-doc names "
-Add names to dict
-SELF DICT NAME ..."
+doc names "Add names to dict" "SELF DICT NAME ..."
 names () { local i; for i; do name $i; done; }
 name names
 
