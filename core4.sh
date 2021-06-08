@@ -3,14 +3,13 @@
 # [Bash - Functions in Shell Variables]: https://unix.stackexchange.com/questions/233091/bash-functions-in-shell-variables
 
 shopt -s expand_aliases
-declare -n alias=BASH_ALIASES
 
 [[ "$Names" ]] || [[ "${Names@a}" ]] && ${FUNCNAME:?}; declare -A Names=()
 [[ "$Names_Doc" ]] || [[ "${Names_Doc@a}" ]] && ${FUNCNAME:?}; declare -A Names_Doc=()
 
 alias doc='Names.doc Names_Doc'
 Names.doc () {
-    : ${3:?}; local -n A=$1; shift; local name
+    : ${3:?}; local -n A=$1 alias=BASH_ALIASES; shift; local name
     [[ -v alias[$1] ]] && name=${alias[$1]% *} || name=$1; shift
     for i; do
 	! [[ -v A[$name] ]] && A[$name]=${i/SELF /$name } || A[$name]+=$'\n'${i/SELF /$name }
@@ -23,7 +22,7 @@ doc deps "SELF DICT NAME [DEPENDENCY] ..."
 doc deps "If NAME is an ALIAS, add a dependency for NAME to head of ALIAS"
 doc deps "If DEPENDENCY is an ALIAS, replace NAME by head of ALIAS"
 deps () {
-    : ${2:?}; local -n A=$1; shift; local name=$1; shift
+    : ${2:?}; local -n A=$1 alias=BASH_ALIASES; shift; local name=$1; shift
     [[ -v alias[$name] ]] && [[ ! -v A[$name] ]] && { A[$name]=${alias[$name]% *}; name=${A[$name]}; }
     local i; local d=()
     for i; do [[ -v alias[$i] ]] && d+=(${alias[$i]% *}) || d+=($i); done
@@ -39,11 +38,13 @@ alias namesList=Names.dict.list
 alias nameShow=Names.dict.item
 alias listMap=Names.list.map' '
 
+alias list='namesList Names'
+
 doc names "Add names to dict" "SELF DICT NAME ..."
 doc nameDist "Distribute a dependency to names in a dict"
 doc namesList "List names in dict"
 doc nameShow "Show a name and its dependencies in a dict"
-doc listMap "The map func on STDIN" "LIST | $f FUNC ARG ..."
+doc listMap "The map func on STDIN" "LIST | SELF FUNC ARG ..."
 
 names () { local i; for i; do name $i; done; }
 nameDist () { local i; for i in ${@:2}; do name $i $1; done; }
@@ -51,15 +52,14 @@ namesList () { local -n A=${1:?}; local i; for i in ${!A[@]}; do echo $i; done }
 nameShow () { local -n A=${1:?}; echo ${2:?}: "${A[$2]}"; }
 listMap () { while read; do "$@" "$REPLY"; done; }
 
-names deps doc names nameDist namesList nameShow listMap
+names deps doc names nameDist namesList nameShow listMap list
 
 alias items=Names.dict.items
 doc items "Show all key value pair in a dict"
 items () { namesList ${1:?}| listMap nameShow $1 | sort | column -ts:; }
 alias namesShow='items Names'
-alias docsShow='items Names_Doc'
 
-names items namesShow docsShow
+names items namesShow
 
 alias pnameP=Names.name.pnameP
 alias aliasP=Names.name.aliasP
@@ -71,7 +71,7 @@ alias assocP=Names.name.assocP
 names pnameP aliasP funcP paramP arrayP assocP
 
 pnameP () { [[ ${1:?} = ${1//[-.?]/} ]]; }
-aliasP () { [[ -v alias[${1:?}] ]]; }
+aliasP () { [[ -v BASH_ALIASES[${1:?}] ]]; }
 funcP ()  { declare -f ${1:?} > /dev/null; }
 paramP () { declare -p ${1:?} &> /dev/null; }
 arrayP () { pnameP ${1:?} && [[ "${!1@a}" = a ]]; }
@@ -92,20 +92,26 @@ names funcSrcStd funcSrcLine funcSrc
 
 doc funcSrcStd "Output standard BASH reprensation of a FUNCTION"
 doc funcSrcLine "Ouput a reprensation of a FUNCTION on one line"
-doc funcSrc 'Call funcSrcStd or funcSrcLine depending on "src" variable value' 'src=[std|line] $f FUNCTION'
+read -rd '' funcSrc  <<!
+Call ${BASH_ALIASES[funcSrcStd]} or ${BASH_ALIASES[funcSrcLine]} depending on "src" variable value
+src=[std|line] SELF FUNCTION
+"src" default to "line"
+!
+doc funcSrc "$funcSrc"
 
 funcSrcStd () { declare -f ${1:?}; }
 funcSrcLine () {
+    local -n a=MAPFILE
     < <(declare -f ${1:?}) mapfile -t
-    ((${#MAPFILE[*]})) || return 1
+    ((${#a[*]})) || return 1
     local i t
-    for ((i = 2; i < $((${#MAPFILE[*]} - 1)); ++i)); do
-	t=${MAPFILE[(($i + 1))]}
+    for ((i = 2; i < $((${#a[*]} - 1)); ++i)); do
+	t=${a[(($i + 1))]}
 	printf -v n ${t/\%/%%}
-	[[ ${#n} == 1 && ${n:(-1)} == "}" ]] || [[ ${#n} == 2 && ${n:(-2)} == "};" ]] && MAPFILE[$i]+=";";
+	[[ ${#n} == 1 && ${n:(-1)} == "}" ]] || [[ ${#n} == 2 && ${n:(-2)} == "};" ]] && a[$i]+=";";
     done
-    MAPFILE[-1]+=';'
-    echo ${MAPFILE[@]}
+    a[-1]+=';'
+    echo ${a[@]}
 }
 funcSrc () { local -A a=([std]=Names.func.src.std [line]=Names.func.src.line); ${a[${src:-line}]} "$@"; }
 
@@ -132,44 +138,48 @@ nameSrc () {
     ((found)) && return
     error $1 is not defined
 }
-name nameSrc aliasP funcP funcSrc paramP arrayP assocP
+name nameSrc aliasP funcP funcSrc paramP arrayP assocP error
 
 alias src=Names.names.pp.src
-doc src "Call Names.name.src on positional parameters" "$f NAME ..."
-doc src "If NAME is an ALIAS also call Names.name.src for head of ALIAS"
+doc src "Call Names.name.src on positional parameters" "SELF NAME ..."
+doc src "If NAME is an ALIAS recurse head of ALIAS"
 src () {
-    local -A seen=(); local i
+    local i a; assocP seen || local -A seen=()
     for i; do
-	if aliasP $i; then
-	    test -v seen[$i] || { nameSrc $i; ((++seen[$i])); }
-	    local a=(${alias[$i]}); local f=${a[0]}
-	    funcP $f && test -v seen[$f] || { nameSrc $f; ((++seen[$f])); }
-	fi
-	test -v seen[$i] || { nameSrc $i; ((++seen[$i])); }
+	test -v seen[$i] && continue
+	aliasP $i && { a=(${BASH_ALIASES[$i]}); ${FUNCNAME[0]} ${a[0]}; }
+	nameSrc $i; ((++seen[$i]))
     done
 }
 name src aliasP nameSrc funcP nameSrc
 
-alias closure=Names.closure
-alias closure_Rec=${alias[closure]}_Rec
-name closure closure_Rec
-closure () { assert test $# -ge 2; local -A seen=(); closure_Rec "$@"; }
-closure_Rec () {
-    assert test ${FUNCNAME[1]} = ${FUNCNAME[0]%_*} -o ${FUNCNAME[1]} = main -o ${FUNCNAME[1]} = ${FUNCNAME[0]}
-    local -n A=${1:?}; local i
-    for i in ${@:2}; do
-	false && { test -v A[$i] || fail $i not in $1; }
-	test -v seen[$i] && continue
+alias closure='Names.closure Names'
+name closure
+Names.closure () {
+    local n=${1:?}; shift; local -n A=$n; local i a
+    assocP seen || local -A seen=()
+    for i; do
+	false && { [[ -v A[$i] ]] || fail $i not in $n; }
+	[[ -v seen[$i] ]] && continue
 	echo $i; ((++seen[$i]))
-	local a=(${A[$i]})
-	test ${#a[*]} -gt 0 && ${FUNCNAME[0]} $1 ${a[@]}
+	a=(${A[$i]}); ((${#a[*]})) && ${FUNCNAME[0]} $n ${a[@]}
     done
 }
+
+alias show='Names.show-doc Names_Doc'
+Names.show-doc () {
+    : ${2:?}; local -n A=$1 alias=BASH_ALIASES; shift; local name
+    [[ -v alias[$1] ]] && name=${alias[$1]% *} || name=$1; shift
+    mapfile -t <<< "${A[$name]}"
+    for i in "${MAPFILE[@]}"; do echo "# $i"; done
+    funcP $name && { echo; src=std funcSrc $name; }
+}
+name show funcP funcSrc
 
 aliases () { echo shopt -s expand_aliases; }
 name aliases
 
-use () { aliases; src $(closure Names "${@:?}"); }
+use () { aliases; src $(closure "${@:?}"); }
 name use aliases src closure
 
 run () { use ${1:?}; echo -n "$1"; shift; echo "${IFS:0:1}" "${@@Q}"; }
@@ -178,8 +188,8 @@ name run use
 main () { (($#)) && { eval "$@"; exit $?; }; }
 name main all
 
-all () { aliases; src $(closure Names $(namesList Names)); }
-name all $(namesList Names)
+all () { aliases; src $(closure $(list)); }
+name all $(list) Names Names_Doc
 
 main "$@"
 all
