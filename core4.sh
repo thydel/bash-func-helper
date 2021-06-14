@@ -52,7 +52,7 @@ namesList () { local -n A=${1:?}; local i; for i in ${!A[@]}; do echo $i; done }
 nameShow () { local -n A=${1:?}; echo ${2:?}: "${A[$2]}"; }
 listMap () { while read; do "$@" "$REPLY"; done; }
 
-names deps doc names nameDist namesList nameShow listMap list
+names deps doc name names nameDist namesList nameShow listMap list
 
 alias items=Names.dict.items
 doc items "Show all key value pair in a dict"
