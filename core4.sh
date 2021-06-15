@@ -185,6 +185,9 @@ name use aliases src closure
 run () { use ${1:?}; echo -n "$1"; shift; echo "${IFS:0:1}" "${@@Q}"; }
 name run use
 
+run-in () { : ${2:?}; local d=$1; use $2; echo -n "(cd $1; $2"; shift 2; echo "${IFS:0:1}" "${@@Q})"; }
+name run-in use
+
 main () { (($#)) && { eval "$@"; exit $?; }; }
 name main all
 
