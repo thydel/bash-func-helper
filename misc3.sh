@@ -12,6 +12,11 @@ alias wmu=with-mem-used
 sql-dump.no-USE () { [[ -f ${1:?}.gz ]] && wmu zcat $1.gz | wmu sed '/^USE /d' | wmu gzip > $1-no-USE.gz; }
 name sql-dump.no-USE with-mem-used
 
+# Use with caution
+with-mem-limit () { : ${2:?}; echo 2^$1 | bc | command time -f '%C %M' prlimit --data=$(cat) ${@:2}; }
+try-diff () { : ${3:?}; [[ -f $2 ]] && [[ -f $3 ]] &&  with-mem-limit $1 zdiff $2 $3; }
+name try-diff with-mem-limit
+
 main "$@"
 all
 
