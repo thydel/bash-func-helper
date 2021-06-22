@@ -17,6 +17,9 @@ with-mem-limit () { : ${2:?}; echo 2^$1 | bc | command time -f '%C %M' prlimit -
 try-diff () { : ${3:?}; [[ -f $2 ]] && [[ -f $3 ]] &&  with-mem-limit $1 zdiff $2 $3; }
 name try-diff with-mem-limit
 
+yml2json () { python -c 'import sys, yaml, json; json.dump(yaml.load(sys.stdin, Loader=yaml.FullLoader), sys.stdout, indent=4)'; }
+name yml2json
+
 main "$@"
 all
 
