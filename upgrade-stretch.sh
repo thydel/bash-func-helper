@@ -46,7 +46,6 @@ load add-vars apt-add-epi-source-list epi_source_deb epi_source_file
 $import $self apt-add-epi-source-list
 
 apply-deborphan () { while deborphan | read; do deborphan | xargs -r aptitude -y remove; done; }
-$import apply-deborphan line
 $import $self apply-deborphan
 
 main "$@"
