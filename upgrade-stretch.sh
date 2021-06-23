@@ -45,9 +45,7 @@ apt-add-epi-source-list () { echo "$epi_source_deb" > $epi_source_file; }
 load add-vars apt-add-epi-source-list epi_source_deb epi_source_file
 $import $self apt-add-epi-source-list
 
-line () { IFS= read -r; echo "$REPLY"; [[ -z "$REPLY" ]] && return 0; }
-
-apply-deborphan () { while deborphan | line; do deborphan | xargs -r aptitude -y remove; done; }
+apply-deborphan () { while deborphan | read; do deborphan | xargs -r aptitude -y remove; done; }
 $import apply-deborphan line
 $import $self apply-deborphan
 
