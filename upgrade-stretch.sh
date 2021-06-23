@@ -45,17 +45,10 @@ apt-add-epi-source-list () { echo "$epi_source_deb" > $epi_source_file; }
 load add-vars apt-add-epi-source-list epi_source_deb epi_source_file
 $import $self apt-add-epi-source-list
 
-
-epi_key="$(ssh prephp7a1.admin2 cat /etc/apt/trusted.gpg | base64)"
-apt-add-epi-key () { echo "$epi_key" | tr ' ' '\n' | base64 -d > /etc/apt/trusted.gpg; }
-load add-vars apt-add-epi-key epi_key
-$import $self apt-add-epi-key
-
-
-apt-install-missing () { DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates; }
-$import $self apt-install-missing
+line () { IFS= read -r; echo "$REPLY"; [[ -z "$REPLY" ]] && return 0; }
 
 apply-deborphan () { while deborphan | line; do deborphan | xargs -r aptitude -y remove; done; }
+$import apply-deborphan line
 $import $self apply-deborphan
 
 main "$@"
