@@ -128,6 +128,8 @@ assert () { "$@" || fail "$@"; }
 false && alias assert=': '
 not () { ! "$@"; }
 
+names fail
+
 alias nameSrc=Names.name.src
 doc nameSrc "Output a homoiconic reprensation of a NAME"
 nameSrc () {
