@@ -26,8 +26,8 @@
 .alias.item () { [[ ${1:?} =~ ^[^.]*[.](.*)$ ]] && alias ${BASH_REMATCH[1]}="$1 "; }
 .alias () { for func in $(.funcs $1); do .alias.item $func; done; }
 
-std.as () { user=${1:?} "${@:2}"; }
-std.on () { ${@:2} | ssh ${user:+${user}@}${1:?} bash; }
+std.as () { user=${1:?} eval "${@:2}"; }
+std.on () { "${@:2}" | ssh ${user:+${user}@}${1:?} bash; }
 
 std.fail () { unset -v fail; : "${fail:?$@}"; }
 std.assert () { $@ || std.fail "$@"; }
