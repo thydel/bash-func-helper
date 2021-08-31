@@ -21,17 +21,20 @@
 .import () { local i; for i in ${@:2}; do alias $i="$1.$i "; done; }
 .import '' run src with use unuse
 
-.pipe () { for ((i = 1; i <= $# ; ++i)); do [[ ${@:$i:1} == -- ]] && break; done; < <(${@:1:(($i - 1))}) ${@:(($i + 1)):$#}; }
-
 .alias.item () { [[ ${1:?} =~ ^[^.]*[.](.*)$ ]] && alias ${BASH_REMATCH[1]}="$1 "; }
 .alias () { for func in $(.funcs $1); do .alias.item $func; done; }
 
 std.as () { user=${1:?} eval "${@:2}"; }
-std.on () { "${@:2}" | ssh ${user:+${user}@}${1:?} bash; }
+std.on () { eval "${@:2}" | ssh ${user:+${user}@}${1:?} bash; }
 
 std.fail () { unset -v fail; : "${fail:?$@}"; }
 std.assert () { $@ || std.fail "$@"; }
 std.map () { while read; do "$@" "$REPLY"; done; }
+
+alias index--='local i; for ((i = 1; i <= $# ; ++i)); do [[ ${@:$i:1} == -- ]] && break; done;'
+std.pipe () { index-- < <(${@:1:(($i - 1))}) ${@:(($i + 1)):$#}; }
+std.amap () { index-- for f in ${@:1:(($i - 1))}; do $f ${@:(($i + 1)):$#}; done; }
+
 std.task () { ${1:?}.target "${@:2}" || $1.rule "${@:2}"; }
 .alias std
 
