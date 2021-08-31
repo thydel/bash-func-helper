@@ -12,7 +12,7 @@
 .vars () { compgen -v ${1:?}; }
 .items () { .vars ${1}_; .funcs $1.; }
 
-.use.declare-item () { [[ ${1:?} =~ ^[^._]*[._][^._]*$ ]] && .src $1; }
+.use.declare-item () { [[ ${1:?} =~ ^[^._]*[._] ]] && .src $1; }
 .use.declare-loop () { .items ${1:?} | while read; do .use.declare-item $REPLY; done; }
 .use () { until [[ ${1:?} == -- ]]; do .use.declare-loop $1; shift; done; echo "${@:2}"; }
 
