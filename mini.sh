@@ -30,8 +30,8 @@ meta.macro meta macro
 macro meta is-{func,param,alias} src funcs vars aliases items use
 macro std fail assert
 
-is-func ()  { declare -f ${1:?} > /dev/null; }
-is-param () { declare -p ${1:?} &> /dev/null; }
+is-func ()  { case ${1:?} in -*) fail $1;; esac; declare -f $1 > /dev/null; }
+is-param () { case ${1:?} in -*) fail $1;; esac; declare -p ${1:?} &> /dev/null; }
 is-alias () { [[ -v BASH_ALIASES[${1:?}] ]]; }
 
 macro -l meta src.{alias,func{,.{std,short}}}
@@ -62,7 +62,7 @@ items () { vars ${1}_; funcs $1.; aliases $1.; }
 
 macro -l meta use.tree
 use.tree () { items ${1:?} | { ifne -n false || fail $1; } | while read; do meta.src $REPLY; done; }
-use () { : ${1:?}; echo shopt -s expand_aliases; until [[ $1 == -- || $# -eq 0 ]]; do use.tree $1; shift; done; echo "${@:2}"; }
+use () { : ${1:?}; echo shopt -s expand_aliases; until [[ $1 == -- || $# -eq 0 ]]; do use.tree $1; shift; done; eval "${@:2}"; }
 
 ################ more lib funcs
 
@@ -73,14 +73,14 @@ run () { self; case ${1:?} in -d) f=do-cd; shift;; -*) fail $1;; *) f=no-cd;; es
 run.no-cd () { declare -f ${1:?}; echo -n "$1"; shift; echo "${IFS:0:1}" "${@@Q}"; }
 run.do-cd () { : ${2:?}; local d=$1; declare -f $2; echo -n "(cd $1; $2"; shift 2; echo "${IFS:0:1}" "${@@Q})"; }
 
-macro -l play with.{no,do}-stdin
-with () { self; case ${1:?} in -i) f=do-stdin; shift;; -*) fail $1;; *) f=no-stdin;; esac; $self.$f "$@"; }
-with.no-stdin () { until [[ ${1:?} == -- || $# -eq 0 ]]; do src $1; shift; done; echo "${@:2}"; }
-with.do-stdin () { with "$@"; echo -e " <<EOF\n\$(cat)\nEOF"; cat; }
+with () {
+    local i; case ${1:?} in -i) i=y; shift;; -*) fail $1;; esac;
+    until [[ $1 == -- || $# -eq 0 ]]; do src $1; shift; done;
+    if [[ "$i" ]]; then echo -e "${@:2} <<EOF\n\$(cat)\nEOF"; cat; else echo "${@:2}"; fi
+}
 
 as () { user=${1:?} eval "${@:2}"; }
 on () { eval "${@:2}" | ssh ${user:+${user}@}${1:?} bash; }
-#on-with-stdin () { ssh ${user:+${user}@}${1:?} bash -c "'$(${@:2})'"; }
 
 macro std map task
 
