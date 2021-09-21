@@ -27,15 +27,17 @@ meta.macro.expand.item () { [[ ${BASH_ALIASES[${1:?}]} =~ [\ ]$ ]] || BASH_ALIAS
 meta.macro.expand () { self; [[ $# -ge 1 ]] && for i; do assert $self.ok $i; $self.item $i; done; }
 meta.macro meta macro
 
-macro meta is-{func,param,alias} src funcs vars aliases items use
+macro meta is-{func,param,alias} src funcs vars aliases items use short
 macro std fail assert
 
 is-func ()  { case ${1:?} in -*) fail $1;; esac; declare -f $1 > /dev/null; }
 is-param () { case ${1:?} in -*) fail $1;; esac; declare -p ${1:?} &> /dev/null; }
 is-alias () { [[ -v BASH_ALIASES[${1:?}] ]]; }
 
+short () { show=short "$@"; }
+
 macro -l meta src.{alias,func{,.{std,short}}}
-macro -e src
+macro -e src short
 
 src () { local _f; { is-func $1 && { src.func $1 && _f=1; }; } || { is-alias $1 && { src.alias $1; _f=1; }; }; is-param $1 && { declare -p $1; _f=1; }; assert [ "$_f" ]; }
 src.alias () { local a=${BASH_ALIASES[$1]% }; alias $1; [[ ( ! -v show || $show != short ) && "$a" = "${BASH_ALIASES[$a]}" ]] && echo alias $a=$a; }
