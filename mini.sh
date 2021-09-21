@@ -7,7 +7,7 @@ shopt -s expand_aliases
 ################ bootstrap
 
 std.fail () { unset -v fail; : "${fail:?${FUNCNAME[1]} $@}"; }; alias fail=std.fail
-std.assert () { $@ || fail "$@"; }; alias assert=std.assert
+std.assert () { $@ || fail "${FUNCNAME[1]} $@"; }; alias assert=std.assert
 
 alias self='local self=${FUNCNAME[0]} {a..z}'
 
@@ -37,8 +37,8 @@ is-alias () { [[ -v BASH_ALIASES[${1:?}] ]]; }
 macro -l meta src.{alias,func{,.{std,short}}}
 macro -e src
 
-src () { { is-func $1 && src.func $1; } || { is-alias $1 && src.alias $1; }; { is-param $1 && declare -p $1; }; }
-src.alias () { local a=${BASH_ALIASES[$1]% }; alias $1; [[ ! -v show || $show != short ]] && echo alias $a=$a; }
+src () { local _f; { is-func $1 && { src.func $1 && _f=1; }; } || { is-alias $1 && { src.alias $1; _f=1; }; }; is-param $1 && { declare -p $1; _f=1; }; assert [ "$_f" ]; }
+src.alias () { local a=${BASH_ALIASES[$1]% }; alias $1; [[ ( ! -v show || $show != short ) && "$a" = "${BASH_ALIASES[$a]}" ]] && echo alias $a=$a; }
 src.func () { self; s=${show:-std}; case $s in std|short) :;; *) fail $s;; esac; $self.$s "$@"; }
 src.func.std () { declare -f ${1:?}; }
 src.func.short () {
@@ -68,15 +68,21 @@ use () { : ${1:?}; echo shopt -s expand_aliases; until [[ $1 == -- || $# -eq 0 ]
 
 macro play run with as on
 
-macro -l play run.{no,do}-cd
-run () { self; case ${1:?} in -d) f=do-cd; shift;; -*) fail $1;; *) f=no-cd;; esac; $self.$f "$@"; }
-run.no-cd () { declare -f ${1:?}; echo -n "$1"; shift; echo "${IFS:0:1}" "${@@Q}"; }
-run.do-cd () { : ${2:?}; local d=$1; declare -f $2; echo -n "(cd $1; $2"; shift 2; echo "${IFS:0:1}" "${@@Q})"; }
+run () { declare -f ${1:?}; echo -n "$1"; shift; echo "${IFS:0:1}" "${@@Q}"; }
 
 with () {
-    local i; case ${1:?} in -i) i=y; shift;; -*) fail $1;; esac;
-    until [[ $1 == -- || $# -eq 0 ]]; do src $1; shift; done;
-    if [[ "$i" ]]; then echo -e "${@:2} <<EOF\n\$(cat)\nEOF"; cat; else echo "${@:2}"; fi
+    case $1 in
+	-i) assert [ $# -ge 2 ]; stdin=true ${FUNCNAME[0]} "${@:2}";;
+	-d) assert [ $# -ge 3 ]; chdir=$2 ${FUNCNAME[0]} "${@:3}" ;;
+	-*) fail $1;;
+	*)
+	    assert [ $# -ge 1 ];
+	    until [[ $1 == -- || $# -eq 0 ]]; do src $1; shift; done;
+	    (($#)) || return;
+	    if [ "$chdir" ]; then echo -n "(cd $chdir;"; shift; echo -n "${IFS:0:1}${@@Q}"; echo ')'; else shift; echo -n "${IFS:0:1}${@@Q}"; fi
+	    if [ "$stdin" ]; then echo -e " <<EOF\n\$(cat)\nEOF"; cat; else echo; fi
+	;;
+    esac;
 }
 
 as () { user=${1:?} eval "${@:2}"; }
@@ -93,3 +99,7 @@ unalias self
 self () { use meta std play awk; }
 main () { (($#)) && { eval "$@"; exit $?; }; }
 main "$@"
+
+####
+
+_f_ () { case $1 in -[a-d]) eval ${1#-}=1 ${FUNCNAME[0]} "${@:2}";; -*) fail $1;; *) echo $a - $b - $c - $d;; esac; }
