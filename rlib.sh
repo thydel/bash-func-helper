@@ -51,7 +51,7 @@ func () { # output a func as a single line
     a[-1]+=';'
     echo ${a[@]}
 }
-assoc () { assert [ $# -eq 1 ]; declare -Ag A_$1; declare -n _A=A_$1 _a=$1; for i in ${_a[@]}; do _A[$i]=''; done; }
+assoc () { assert [ $# -ge 1 ]; for i; do declare -Ag A_$i; declare -n _A=A_$i _a=$i; for i in ${_a[@]}; do _A[$i]=''; done; done; }
 has () { assert [ $# -eq 2 ]; [ -v A_$1[$2] ]; }
 
 awk_version=2021-11-16
@@ -59,14 +59,23 @@ awk.sum () { awk '{ s += $1 } END { print s }'; }
 
 # modulino
 
-self=(run src with short srcs use as on)
+_with=(run src with)
+_use=(src short srcs use)
+_on=(as on)
+_self=("${_with[@]}" "${_use[@]/src}" "${_on[@]}")
+self=(with use on self)
+
 libs=(self std awk)
 
-assoc libs
+assoc self libs
 
-terse () { assert [ $# -ge 1 ]; src=std.src; "$@"; }
+terse () { assert [ $# -ge 1 ]; _src=std.src "$@"; }
 lib () {
-    assert [ $# -eq 1 ]; if [[ $1 == self ]]; then list ${self[@]}; else assert std.has libs $1; srcs $1; fi | map ${src:-src}; }
+    assert [ $# -eq 1 ];
+    if has self $1; then local -n _a=_$1; list ${_a[@]};
+    else assert std.has libs $1; srcs $1;
+    fi | map ${_src:-src};
+}
 libs () { (($#)) && libs=("$@"); for i in ${libs[@]}; do lib $i; done; }
 
 main () { (($#)) && { "$@"; exit $?; }; }
