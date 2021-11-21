@@ -8,7 +8,8 @@
 # with $item ... -- $func $arg ... # run "$func $arg ..." with "src $item" for all item args
 
 run () { declare -f $1; echo "$@"; }
-src () { declare -p ${1:?} &> /dev/null && declare -p $1 || declare -f $1; }
+#src () { declare -p ${1:?} &> /dev/null && declare -p $1 || declare -f $1; }
+src () { declare -p ${1:?} &> /dev/null && declare -p $1; [ -v BASH_ALIASES[$1] ] && alias $1; declare -f $1; }
 with () { until [[ $1 == -- ]]; do src ${1:?}; shift; done; run "${@:2}"; }
 
 # Pseudo lib namespace via aliases and compgen
@@ -18,8 +19,10 @@ with () { until [[ $1 == -- ]]; do src ${1:?}; shift; done; run "${@:2}"; }
 # use $lib ... -- $func $arg ...   # echo "$func $arg ..." with "src $item" for all items of all $lib args
 
 short () { for i in ${@:2}; do BASH_ALIASES[$i]=${1:?}.$i; done; }
-srcs () { compgen -A function ${1:?}.; compgen -v $1_; }
-use () { until [[ ${1:?} == -- ]]; do srcs ${1:?} | while read; do src $REPLY; done; shift; done; echo "${@:2}"; }
+#srcs () { compgen -A function ${1:?}.; compgen -v $1_; }
+#srcs () { compgen -A function ${1:?}.; compgen -v $1_; compgen -A function $1. | while read; do [ -v BASH_ALIASES[$REPLY] ] && alias $REPLY; done; }
+srcs () { compgen -A function ${1:?}.; compgen -v $1_; compgen -A function $1. | while read; do [ -v BASH_ALIASES[${REPLY/#$1.}] ] && echo ${REPLY/#$1.}; done; }
+use () { echo shopt -s expand_aliases; until [[ ${1:?} == -- ]]; do srcs ${1:?} | while read; do src $REPLY; done; shift; done; echo "${@:2}"; }
 
 # Syntaxic sugar to use minilib with ssh
 
@@ -31,13 +34,14 @@ shopt -s expand_aliases
 # demo libs
 
 std_version=2021-11-16
-short std fail assert map list src func assoc has
+short std fail assert map list func assoc has
 
 fail () { unset -v fail; : "${fail:?${FUNCNAME[1]} $@}"; }
 assert () { $@ || fail "${FUNCNAME[1]} $@"; }
 map () { while read; do "$@" "$REPLY"; done; }
 list () { for i; do echo $i; done; }
-src () { declare -p ${1:?} &> /dev/null && declare -p $1 || func $1; }
+#std.src () { declare -p ${1:?} &> /dev/null && declare -p $1 || func $1; }
+std.src () { declare -p ${1:?} &> /dev/null && declare -p $1; [ -v BASH_ALIASES[$1] ] && alias $1; func $1; }
 func () { # output a func as a single line
     local -n a=MAPFILE
     < <(declare -f ${1:?}) mapfile -t
@@ -62,7 +66,7 @@ awk.sum () { awk '{ s += $1 } END { print s }'; }
 _with=(run src with)
 _use=(src short srcs use)
 _on=(as on)
-_self=("${_with[@]}" "${_use[@]/src}" "${_on[@]}")
+_self=("${_with[@]}" "${_use[@]/%src}" "${_on[@]}")
 self=(with use on self)
 
 libs=(self std awk)
@@ -78,7 +82,11 @@ lib () {
 }
 libs () { (($#)) && libs=("$@"); for i in ${libs[@]}; do lib $i; done; }
 
+#self () { terse lib self; "$@"; }
+#macro () { test -v BASH_ALIASES[$1] && alias $1; }
+
 main () { (($#)) && { "$@"; exit $?; }; }
 
 main "$@"
+echo shopt -s expand_aliases
 terse libs
