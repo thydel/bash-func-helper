@@ -12,19 +12,31 @@ shopt -s expand_aliases
 #### meta lib
 
 declare -A _items=()            # dependency trees
+declare -A _comments=()         # items comments
 
-# pseudo namespace for functions vi alias
+alias name=meta.name
 name () {
     : ${1:?}; unset -v fail;
     for i in ${@:2}; do [ -v BASH_ALIASES[$i] ] && "${fail:?$1 $i redefined}" || BASH_ALIASES[$i]=$1.$i; done; }
 
-name meta splitargs item list header lib use deps closure items
+name meta expand comment splitargs item list header lib use deps closure items
 
-splitargs () {                  # split @ by -- in two array ref
+expand () {
+    unset -v fail; local -n _n=${1:?}; ! ((${#_n})) || "${fail:?$1 in ${FUNCNAME[1]} has no value}";
+    [ -v BASH_ALIASES[$_n] ] && _n=${BASH_ALIASES[$_n]% *}; }
+
+comment () { : ${2:?}; local k=$1; expand k; _comments[$k]+="${@:2}"; }
+
+comment name "name pseudo namespace for functions vi alias"
+comment expand "expand var value to first word of alias if value is an alias"
+comment comment "fill comments table for item"
+
+comment splitargs "split @ by -- in two array ref"
+splitargs () {
     local -n _a=$1 _b=$2; shift 2;
     for ((i=1; i<=$#; ++i)); do test "${@:$i:1}" == -- && break; done; _a=("${@:1:(($i-1))}"); _b=("${@:(($i+1)):$#}"); }
 
-# emit src for func var or namespace alias
+comment item "emit src for func var or namespace alias"
 item () {
     : ${1:?}; local a=(${1//./ }) b=${1/#${a[0]}.};
     test -v $1 || test -v $1[@] && declare -p $1; ${_src:-declare -f} $1;
@@ -35,9 +47,6 @@ list () { compgen -A function $1.; compgen -v $1_; echo $1; }
 
 # header of output script
 header () { local i; for i in 'set -euo pipefail' 'shopt -s expand_aliases'; do echo $i; done; }
-
-# trailer of ouput script
-#trailer () { item main; echo 'main "$@"'; }
 
 lib () {             # emit header, src for all items of a namespace list, then a command
     header; local libs cmd l; splitargs libs cmd "$@";
