@@ -33,7 +33,8 @@ alias gf2md=git-file-to-md
 
 git-repo-to-js () { git-repo-to-url | jq -R '{ url: .}'; }
 $import git-repo-to-js git-repo-to-url
-git-commit-to-js () { git log -${1:-1} --pretty='{ "comment": "%s", "commit": "%H" }'; }
+#git-commit-to-js () { git log -${1:-1} --pretty='{ "comment": "%s", "commit": "%H" }'; }
+git-commit-to-js () { git log -${1:-1} --pretty='{ _XXX_comment_XXX_: _XXX_%s_XXX_, _XXX_commit_XXX_: _XXX_%H_XXX_ }' | sed -e 's/"/\\"/g' -e 's/_XXX_/"/g'; }
 git-repo-and-commit-to-js () { (git-repo-to-js; git-commit-to-js "$@") | jq -n 'input as $r | [inputs] | map([$r, .] | add)[]'; }
 $import git-repo-and-commit-to-js git-repo-to-js git-commit-to-js
 
