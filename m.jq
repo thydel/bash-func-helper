@@ -1,15 +1,8 @@
-def scalar:
-  def s: { boolean, number, string } | keys;
-  type | IN(s[]);
+#!/usr/bin/env -S jq -nf
 
 def scalar:
-  def s: ({ boolean, number, string } | keys);
-  def s: [ "null", "boolean", "number", "string" ];
-  type | IN(s[]);
-
-def scalar: type as $i | { null, boolean, number, string } | has($i);
-
-def scalar: type | IN("null", "boolean", "number", "string");
+  def scalar: null | { null, boolean, number, string } | keys[];
+  type | IN(scalar);
 
 def m(d; v; e):
   if d | scalar then d | v else empty end;
