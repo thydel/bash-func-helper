@@ -10,7 +10,9 @@ alias run='(($#)) && { declare -f $1 || fail «$1» not a func; echo "${@@Q}"; }
 with () { args && until [[ $# == 1 || $1 == -- ]]; do decl; shift; done; [[ $1 == -- ]] && shift; run; }
 unalias args check decl run
 
+main () { (($#)) && { eval "$@"; exit $?; } || true; }
+
 wrap () { echo "$1 () { $(with ${@:2}); }"; }
 load () { source <($@); }
 
-with fail with wrap load --
+with fail with main wrap load --
