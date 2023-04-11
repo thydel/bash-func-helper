@@ -22,12 +22,12 @@ name () {
 name meta expand comment splitargs item list header lib use deps closure items
 
 expand () {
-    unset -v fail; local -n _n=${1:?}; ! ((${#_n})) || "${fail:?$1 in ${FUNCNAME[1]} has no value}";
+    unset -v fail; local -n _n=${1:?}; ((${#_n})) || "${fail:?$1 in ${FUNCNAME[1]} has no value}";
     [ -v BASH_ALIASES[$_n] ] && _n=${BASH_ALIASES[$_n]% *}; }
 
 comment () { : ${2:?}; local k=$1; expand k; _comments[$k]+="${@:2}"; }
 
-comment name "name pseudo namespace for functions vi alias"
+comment name "name pseudo namespace for functions via alias"
 comment expand "expand var value to first word of alias if value is an alias"
 comment comment "fill comments table for item"
 
@@ -66,7 +66,7 @@ deps () {            # insert list of dependencies for a target with aliases sub
     _items[$user]=${deps[@]}; }
 
 closure () {                    # emit all items of a dependency tree for a list of items
-    local i a; [[ "${seen@a}" = A ]] || local -A seen=()
+    local i a; set +u; [[ "${seen@a}" = A ]] || local -A seen=(); set -u
     for i; do
         [ -v BASH_ALIASES[$i] ] && i=${BASH_ALIASES[$i]% *};
         [[ -v seen[$i] ]] && continue
@@ -78,6 +78,9 @@ closure () {                    # emit all items of a dependency tree for a list
 items () {         # emit header, src for all dependencie for a listof itens, then a command
     header; local items cmd; splitargs items cmd "$@";
     closure ${items[@]}; echo ${cmd[@]:-:}; }
+
+comments () { local comment; for comment in "${!_comments[@]}"; do echo $comment "${_comments[$comment]}"; done; }
+use comments -- _comments
 
 use lib -- header splitargs list item
 use use items -- splitargs
