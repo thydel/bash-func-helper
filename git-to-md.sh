@@ -7,6 +7,7 @@ jq-md-url () { jq --argjson s '"\n    "' -r "$1"; }
 
 git-url () { git config --get remote.origin.url; }
 git-repo () { git-url | jq -Rr 'split(":")[1]|split(".")[:-1][]'; }
+git-repo () { git-url | jq -Rr 'split(":")[1]'; } # WTF
 $import git-repo git-url
 
 git-site () { git-url | jq -Rr 'split(":")[0]|split("@")[1]'; }
