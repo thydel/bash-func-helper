@@ -3,7 +3,7 @@
 source <(bfh boot)
 self=$(basename "${BASH_SOURCE[0]}" .sh)
 
-jq-md-url () { jq --argjson s '"\n    "' -r "$1"; }
+jq-md-url () { jq --argjson s '"\n    "' --arg what $2 -r "$1"; }
 
 git-url () { git config --get remote.origin.url; }
 git-repo () { git-url | jq -Rr 'split(":")[1]|split(".")[:-1][]'; }
@@ -16,7 +16,7 @@ $import git-site git-url
 git-repo-to-url () { echo https://$(git-site)/$(git-repo); }
 $import git-repo-to-url git-site git-repo
 
-git-repo-to-md () { git-repo-to-url | git-url-to-md; }
+git-repo-to-md () { git-repo-to-url | git-url-to-md repo; }
 $import git-repo-to-md git-repo-to-url git-url-to-md
 alias gr2md=git-repo-to-md
 
@@ -25,7 +25,7 @@ $import git-branch-or-tag fail
 git-file-to-url() { xargs -ri echo https://$(git-site)/$(git-repo)/blob/$(git-branch-or-tag "$@")/{}; }
 $import git-file-to-url git-site git-repo git-branch-or-tag
 
-git-url-to-md () { jq -R | jq-md-url 'split("/")[-1] as $p | "[\($p)]:\($s)\(.)\($s)\"github.com file\"\n"'; }
+git-url-to-md () { jq -R | jq-md-url 'split("/")[-1] as $p | "[\($p)]:\($s)\(.)\($s)\"github.com \($what)\"\n"' ${1:-file}; }
 $import git-url-to-md jq-md-url
 
 git-file-to-md () { check-tty; git-file-to-url "$@" | git-url-to-md; }
