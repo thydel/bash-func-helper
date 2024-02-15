@@ -3,7 +3,7 @@
 source <(bfh boot)
 self=$(basename "${BASH_SOURCE[0]}" .sh)
 
-jq-md-url () { jq --argjson s '"\n    "' --arg what $2 -r "$1"; }
+jq-md-url () { jq --argjson s '"\n    "' --arg what "$2" -r "$1"; }
 
 git-url () { git config --get remote.origin.url; }
 git-repo () { git-url | jq -Rr 'split(":")[1]|split(".")[:-1][]'; }
